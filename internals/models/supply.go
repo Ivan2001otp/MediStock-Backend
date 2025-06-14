@@ -1,0 +1,18 @@
+package models
+
+import (
+	"time"
+)
+
+type Supply struct {
+	ID int `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+	SKU string `json:"sku" db:"sku"`
+	CurrentStock int `json:"current_stock" db:"current_stock"`
+	UnitOfMeasure string `json:"unit_of_measure" db:"unit_of_measure"`
+	ReorderThreshold int `json:"reorder_threshold" db:"reorder_threshold"`
+	Category string `json:"category" db:"category"`
+	IsVital bool `json:"is_vital" db:"is_vital"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
