@@ -2,9 +2,7 @@ package main
 
 import (
 	db "Medistock_Backend/internals/db"
-	middleware "Medistock_Backend/internals/middleware"
-	handlers "Medistock_Backend/internals/handlers"
-
+	routers "Medistock_Backend/internals/routers"
 	"context"
 	"log"
 	"net/http"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -22,48 +21,37 @@ func main() {
 		log.Println("Something went wrong. Could not load environment variables.")
 		return
 	}
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	// connecting to db
+	rootCtx := context.Background()
+	ctx, cancel := context.WithTimeout(rootCtx, 10*time.Second)
 	defer cancel()
 
-	dbConn, err := db.Connect(ctx)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	if err := db.Init(ctx); err != nil {
+		log.Fatalf("Failed to initialize DB : %v", err)
 	}
+	defer db.Close()
 
-
-	defer func() {
-		_, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCancel()
-		if err := dbConn.Close(); err != nil {
-			log.Printf("Error closing database connection: %v", err)
-		} else {
-			log.Println("Database connection pool closed gracefully.")
-		}
-	}()
-
-	mainRouter := mux.NewRouter();
-	apiRouter := mainRouter.PathPrefix("/api").Subrouter()
-	apiRouter.Use(func(next http.Handler) http.Handler {
-		return middleware.RateLimitMiddleWare(next,1.0, 5)
+	// define cors config
+	corsOptions := cors.New(cors.Options{
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 
+	mainRouter := mux.NewRouter()
 
+	// initializing all routers here
+	vendorRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
+	routers.RegisterVendorRoutes(vendorRouters)
 
-	apiRouter.HandleFunc("/health", handlers.HealthCheckHandler).Methods("GET")
+	// setting handler with cors config.
+	handler := corsOptions.Handler(mainRouter) // ?
 
-	// Vendor Management Endpoints
-	apiRouter.HandleFunc("/vendors", handlers.CreateVendorHandler).Methods("POST")
-	apiRouter.HandleFunc("/vendors", handlers.GetAllVendorsHandler).Methods("GET")
-	apiRouter.HandleFunc("/vendors/{id}", handlers.GetVendorByIDHandler).Methods("GET")
-	apiRouter.HandleFunc("/vendors/{id}", handlers.UpdateVendorHandler).Methods("PUT")
-
-
+	// setting our backend all prep !
 	port := os.Getenv("BACKEND_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	log.Printf("MediStock Go Backend API starting on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mainRouter))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }

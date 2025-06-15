@@ -26,7 +26,15 @@ func Close() error {
 	return nil;
 }
 
-func Connect(ctx context.Context) (*sql.DB, error) {
+func Get() *sql.DB {
+	if (dbInstance == nil) {
+		log.Fatal("DB not initialized. Call db.Init() first !");
+		
+	}
+	return dbInstance;
+}
+
+func Init(ctx context.Context) ( error) {
 	var err error
 
 	once.Do(
@@ -87,8 +95,8 @@ func Connect(ctx context.Context) (*sql.DB, error) {
 		})
 
 	if err != nil {
-		return nil, err
+		return  err
 	}
 
-	return dbInstance, nil
+	return nil
 }

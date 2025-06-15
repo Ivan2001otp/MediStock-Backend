@@ -39,7 +39,7 @@ func (rl *rateLimiter) getLimiter(ip string) *rate.Limiter {
 		rl.mu.Lock()
 		defer rl.mu.Unlock()
 
-		limiter , exists := rl.ips[ip] 
+		limiter , exists = rl.ips[ip] 
 		// double check after acquiring write lock, incase another might create it..
 		if (! exists) {
 			limiter = rate.NewLimiter(rl.r, rl.b)
@@ -66,6 +66,7 @@ func RateLimitMiddleWare(next http.Handler, rps float64, burst int) http.Handler
 		currentLimiter := limiter.getLimiter(ip)
 
 		if !currentLimiter.Allow() {
+			log.Printf("rate limit exceeded immanuel ")
 			log.Printf("Rate limit exceeded for IP: %s", ip)
 			// Optionally set rate limit headers (RFC 6585)
 			w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", burst)) // Total requests allowed in the window (simplified to burst)
