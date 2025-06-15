@@ -13,7 +13,7 @@ type Vendor struct {
 	Email                string    `json:"email" db:"email"`
 	Address              string    `json:"address" db:"address"`
 	OverallQualityRating float64   `json:"overall_quality_rating" db:"overall_quality_rating"`
-	AvgDeliveryTimeDays  float64   `json:"avg_delivery_time_days" db:"avg_delivery_time_days"`
+	AvgDeliveryTimeDays  float64   `json:"avg_delivery_time" db:"avg_delivery_time"`
 	CreatedAt            time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time `json:"updated_at" db:"updated_at"`
 }
