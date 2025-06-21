@@ -1,17 +1,38 @@
 package middleware
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
-	"net"
 	"net/http"
-	"sync"
-	"time"
-
 	"golang.org/x/time/rate"
 )
 
+type Message map[string]interface{}
+func RateLimitMiddleWare(next func(w http.ResponseWriter, r *http.Request)) http.Handler {
 
+	limiter := rate.NewLimiter(2, 4);
+
+	return http.HandlerFunc(
+		func (w http.ResponseWriter, r *http.Request) {
+			if (!limiter.Allow()) {
+				log.Println("The rate-limiter is at max...")
+
+				 message := Message{
+					"status" : http.StatusTooManyRequests,
+					"error" : "Too many requests to handle",
+					"message":"The API is at max-capacity. Try again later !",
+				 }
+
+				 w.WriteHeader(http.StatusTooManyRequests);
+				 json.NewEncoder(w).Encode(&message)
+			} else {
+				log.Println("The rate-limiter just passed it on !")
+				next(w, r);
+			}
+		})
+}
+
+/*
 type rateLimiter struct {
 	ips map[string] *rate.Limiter
 	mu *sync.RWMutex	// mutex to protect map
@@ -81,3 +102,5 @@ func RateLimitMiddleWare(next http.Handler, rps float64, burst int) http.Handler
 		next.ServeHTTP(w, req)
 	});
 }
+
+*/

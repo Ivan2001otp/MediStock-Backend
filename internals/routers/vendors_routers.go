@@ -12,8 +12,8 @@ import (
 func RegisterVendorRoutes(apiRouter *mux.Router) {
 
 	apiRouter.Use(func(next http.Handler) http.Handler {
-		return middleware.RateLimitMiddleWare(next, 2.0, 8)
-	})
+		return middleware.RateLimitMiddleWare(next.ServeHTTP);
+	});
 
 	apiRouter.HandleFunc("/health", services.HealthCheckHandler).Methods("GET")
 

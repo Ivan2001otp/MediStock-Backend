@@ -17,7 +17,7 @@ func UpdateVendor(updatedVendor models.Vendor) error {
 
 	query :=
 		`
-	INSERT INTO vendors(id,name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time)
+	INSERT INTO vendors(id,name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days)
 	VALUES (?,?,?,?,?,?,?, ?)
 	ON DUPLICATE KEY UPDATE
 		id = VALUES(id),
@@ -27,7 +27,7 @@ func UpdateVendor(updatedVendor models.Vendor) error {
 		email = VALUES(email),
 		address = VALUES(address),
 		overall_quality_rating = VALUES(overall_quality_rating),
-		avg_delivery_time = VALUES(avg_delivery_time),
+		avg_delivery_time_days = VALUES(avg_delivery_time_days),
 		updated_at = CURRENT_TIMESTAMP;
 	`
 
@@ -73,6 +73,7 @@ func RetrieveVendor(vendorId int) (*models.Vendor, error) {
 			&vendor.Address,
 			&vendor.OverallQualityRating,
 			&vendor.AvgDeliveryTimeDays,
+			&vendor.Score,
 			&vendor.CreatedAt,
 			&vendor.UpdatedAt,
 		)
@@ -107,7 +108,7 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 	}
 
 	var QUERY string = `
-		SELECT id,name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time,created_at,updated_at FROM vendors
+		SELECT id,name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days,score,created_at,updated_at FROM vendors
 		WHERE id > ?
 		ORDER By id ASC
 		LIMIT ?
@@ -134,6 +135,7 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 			&vendor.Address,
 			&vendor.OverallQualityRating,
 			&vendor.AvgDeliveryTimeDays,
+			&vendor.Score,
 			&vendor.CreatedAt,
 			&vendor.UpdatedAt,
 		)
@@ -164,7 +166,7 @@ func AddNewVendorservice(vendorModel models.Vendor) error {
 	}
 
 	var QUERY string = `
-		INSERT INTO vendors (name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time)
+		INSERT INTO vendors (name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days)
 		VALUES (?,?,?,?,?,?,?)
 		`
 

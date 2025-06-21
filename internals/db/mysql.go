@@ -59,7 +59,7 @@ func Init(ctx context.Context) ( error) {
 
 			var dsn string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPassword, dbHost, dbPort, dbName)
 
-			log.Println("Data source name is : ", dsn)
+			// log.Println("Data source name is : ", dsn)
 
 			dbInstance, err = sql.Open("mysql", dsn)
 
