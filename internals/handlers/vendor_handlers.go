@@ -98,7 +98,7 @@ func RetrieveUniqueVendor(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		log.Println("Could not parse response - %v", err)
+		log.Printf("Could not parse response - %v", err)
 		return
 	}
 }
@@ -148,7 +148,7 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// services.SetErrorResponse(w, http.StatusInternalServerError, "failed to parse request body")
 		log.Printf("Something went wrong while creating new vendor : %v", err)
-		log.Fatal(err) //exit
+		// log.Error(err) //exit
 		return
 	}
 
@@ -156,14 +156,15 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 	validationErr := validationController.Struct(&vendor)
 	if validationErr != nil {
 		w.Write([]byte("validations verification failed on parsed request body"))
-		log.Fatal(validationErr)
+		log.Panic(validationErr)
+		return;
 	}
 
 	// created, updated_at is handled by mysql
 	log.Print("Adding new vendor to db !")
 	err = services.AddNewVendorservice(vendor)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 		return
 	}
 

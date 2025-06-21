@@ -4,9 +4,16 @@ import (
 	"log"
 	"net/http"
 	"encoding/json"
+	  "github.com/google/uuid"
 )
 
 type status map[string]interface{}
+
+var  uuid_generator uuid.UUID
+func GenerateUUID() string {
+	uuid_generator = uuid.New();
+	return uuid_generator.String();
+}
 
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	response := status {

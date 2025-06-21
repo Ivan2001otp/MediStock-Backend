@@ -37,11 +37,14 @@ func main() {
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 
+	// initializing all routers here
 	mainRouter := mux.NewRouter()
 
-	// initializing all routers here
 	vendorRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
+	hospitalRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
+
 	routers.RegisterVendorRoutes(vendorRouters)
+	routers.RegisterHospitalRoutes(hospitalRouters)
 
 	// setting handler with cors config.
 	handler := corsOptions.Handler(mainRouter) // ?
