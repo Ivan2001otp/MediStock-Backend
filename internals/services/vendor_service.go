@@ -157,7 +157,6 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 	return vendorList, nil
 }
 
-
 // vendor + supply
 func UpsertSupplyItemService(supplyModel models.Supply, vendorId int, supplyPrice string) error {
 	dbInstance := DB.Get()
@@ -195,6 +194,7 @@ func UpsertSupplyItemService(supplyModel models.Supply, vendorId int, supplyPric
 	// now add the supply item in supply-vendor table
 	vendorModel, _ := RetrieveVendor(vendorId)
 	amount, _ := strconv.ParseFloat(supplyPrice, 64)
+	log.Printf("Upserting vendor_id=%d, supply_id=%s", vendorId, supplyModel.ID)
 
 	QUERY = `
 		INSERT INTO vendor_supply_prices (vendor_id,supply_id,unit_price,quality_rating,avg_delivery_days)
@@ -261,7 +261,6 @@ func RetrieveSupply(supplyId string) (*models.Supply, error) {
 			&supply.IsVital,
 			&supply.CreatedAt,
 			&supply.UpdatedAt,
-			
 		)
 
 		if err != nil {
@@ -279,8 +278,6 @@ func RetrieveSupply(supplyId string) (*models.Supply, error) {
 
 	return &supply, nil
 }
-
-
 
 func AddNewVendorservice(vendorModel models.Vendor) error {
 	dbInstance := DB.Get()

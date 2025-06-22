@@ -22,7 +22,7 @@ func UpdateSupplyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
-	vendorId, _ := strconv.Atoi(params["vendor_id"]) ///integer
+	vendorId, _ := strconv.Atoi(params["id"]) ///integer
 
 	query_params := r.URL.Query()
 	supplyId := query_params["supply_id"] //string
@@ -45,21 +45,27 @@ func UpdateSupplyHandler(w http.ResponseWriter, r *http.Request) {
 	oldSupplyModel.UnitOfMeasure = updated_supply_unitofmeasure[0]
 	oldSupplyModel.SKU = updated_supply_sku[0]
 	oldSupplyModel.Category = updated_supply_category[0]
-	oldSupplyModel.IsVital,err =  strconv.ParseBool(updated_supply_isvital[0])
+	oldSupplyModel.IsVital, err = strconv.ParseBool(updated_supply_isvital[0])
 
 	if err != nil {
-		log.Panic("Failed to parse Bool (IsVital) supply model !");
-		http.Error(w, err.Error(), http.StatusInternalServerError);
-		return;
+		log.Panic("Failed to parse Bool (IsVital) supply model !")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	err = services.UpsertSupplyItemService(*oldSupplyModel, vendorId, updated_supply_price[0])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError);
-		return;
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	log.Println("Successfully updated the supply - ",supplyId);
+	log.Println("Successfully updated the supply - ", supplyId)
+	response := models.Message{
+		"message": "success",
+		"status":  http.StatusOK,
+	}
+
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // Add new supply by particular vendor-id
