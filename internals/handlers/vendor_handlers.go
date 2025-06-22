@@ -14,23 +14,132 @@ import (
 
 type status map[string]interface{}
 
-func UpdateVendorHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		services.SetErrorResponse(w, http.StatusBadRequest, "supposed to be GET");
+func UpdateSupplyHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPatch {
+		services.SetErrorResponse(w, http.StatusBadRequest, "supposed to be PATCH")
+		return
+	}
+
+	params := mux.Vars(r)
+	vendorId, _ := strconv.Atoi(params["vendor_id"]) ///integer
+
+	query_params := r.URL.Query()
+	supplyId := query_params["supply_id"] //string
+
+	updated_supply_price := query_params["supply_price"]
+	updated_supply_name := query_params["supply_name"]
+	updated_supply_sku := query_params["supply_sku"]
+
+	updated_supply_unitofmeasure := query_params["supply_unit_of_measure"]
+	updated_supply_category := query_params["supply_category"]
+	updated_supply_isvital := query_params["supply_is_vital"]
+
+	oldSupplyModel, err := services.RetrieveSupply(supplyId[0])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	oldSupplyModel.Name = updated_supply_name[0]
+	oldSupplyModel.UnitOfMeasure = updated_supply_unitofmeasure[0]
+	oldSupplyModel.SKU = updated_supply_sku[0]
+	oldSupplyModel.Category = updated_supply_category[0]
+	oldSupplyModel.IsVital,err =  strconv.ParseBool(updated_supply_isvital[0])
+
+	if err != nil {
+		log.Panic("Failed to parse Bool (IsVital) supply model !");
+		http.Error(w, err.Error(), http.StatusInternalServerError);
 		return;
 	}
 
-	validationController := validator.New()
-	params := mux.Vars(r);
-	vendorId,_ := strconv.Atoi(params["id"])
+	err = services.UpsertSupplyItemService(*oldSupplyModel, vendorId, updated_supply_price[0])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError);
+		return;
+	}
 
-	var updatedVendor models.Vendor;
+	log.Println("Successfully updated the supply - ",supplyId);
+}
+
+// Add new supply by particular vendor-id
+func AddNewSupplyHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		services.SetErrorResponse(w, http.StatusBadRequest, "supposed to be GET")
+		return
+	}
+
+	/*
+		{
+			"id":"",
+			"name":"",
+			"sku":"",
+			"unit_of_measure":"",
+			"category":"",
+			"is_vital":"",
+			"created_at",
+			"updated_at"
+		}
+	*/
+
+	// id is "path_param" , supply_price is "query_param"
+
+	validationController := validator.New()
+	params := mux.Vars(r)
+	vendorId, _ := strconv.Atoi(params["id"])
+
+	query_values := r.URL.Query()
+	// calculated sum of supplyPrice will come from frontend itself.
+	supplyPrice := query_values.Get("supply_price")
+
+	var supplyModel models.Supply
+	decoder := json.NewDecoder(r.Body)
+
+	err := decoder.Decode(&supplyModel)
+	if err != nil {
+		log.Printf("Something went wrong while Adding new supply : %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	validationErr := validationController.Struct(&supplyModel)
+	if validationErr != nil {
+		w.Write([]byte("validations verification failed on parsed request body"))
+		log.Panic(validationErr)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	supplyModel.ID = services.GenerateUUID()
+	err = services.UpsertSupplyItemService(supplyModel, vendorId, supplyPrice)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("successfully inserted supply by vendorid ", vendorId)
+}
+
+func UpdateVendorHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		services.SetErrorResponse(w, http.StatusBadRequest, "supposed to be GET")
+		return
+	}
+
+	validationController := validator.New()
+	params := mux.Vars(r)
+	vendorId, _ := strconv.Atoi(params["id"])
+
+	var updatedVendor models.Vendor
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&updatedVendor)
 	if err != nil {
 		// services.SetErrorResponse(w, http.StatusInternalServerError, "failed to parse request body")
 		log.Printf("Something went wrong while creating new vendor : %v", err)
-		http.Error(w, "failed to parse request body", http.StatusInternalServerError);
+		http.Error(w, "failed to parse request body", http.StatusInternalServerError)
 		return
 	}
 
@@ -38,40 +147,38 @@ func UpdateVendorHandler(w http.ResponseWriter, r *http.Request) {
 	validationErr := validationController.Struct(&updatedVendor)
 	if validationErr != nil {
 		w.Write([]byte("validations verification failed on parsed request body"))
-		http.Error(w, "validations on field failed gracefully", http.StatusInternalServerError);
-		return;
+		http.Error(w, "validations on field failed gracefully", http.StatusInternalServerError)
+		return
 	}
-
 
 	oldVendor, err := services.RetrieveVendor(vendorId)
 	if err != nil {
-		log.Println("The vendor does not exists with vendorid-",vendorId);
-		http.Error(w, "vendor does not exist", http.StatusInternalServerError);
-		return;
+		log.Println("The vendor does not exists with vendorid-", vendorId)
+		http.Error(w, "vendor does not exist", http.StatusInternalServerError)
+		return
 	}
 
-	
 	// updating  fields
 	oldVendor.Name = updatedVendor.Name
 	oldVendor.ContactPerson = updatedVendor.ContactPerson
-	oldVendor.Phone= updatedVendor.Phone
+	oldVendor.Phone = updatedVendor.Phone
 	oldVendor.Email = updatedVendor.Email
 	oldVendor.Address = updatedVendor.Address
 	oldVendor.OverallQualityRating = updatedVendor.OverallQualityRating
 	oldVendor.AvgDeliveryTimeDays = updatedVendor.AvgDeliveryTimeDays
 
-	err = services.UpdateVendor(*oldVendor);
+	err = services.UpdateVendor(*oldVendor)
 	if err != nil {
-		http.Error(w, "Upsert failed ", http.StatusInternalServerError);
-		return;
+		http.Error(w, "Upsert failed ", http.StatusInternalServerError)
+		return
 	}
 
 	response := status{
-		"data":"success",
-		"status":http.StatusOK,
+		"data":   "success",
+		"status": http.StatusOK,
 	}
 
-	_ = json.NewEncoder(w).Encode(response);
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // get vendor by id.
@@ -157,7 +264,7 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 	if validationErr != nil {
 		w.Write([]byte("validations verification failed on parsed request body"))
 		log.Panic(validationErr)
-		return;
+		return
 	}
 
 	// created, updated_at is handled by mysql
@@ -172,8 +279,8 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 
 	services.SetSuccessResponse(w, http.StatusOK)
 	response := status{
-		"status":  http.StatusOK,
-		"data": "success",
+		"status": http.StatusOK,
+		"data":   "success",
 	}
 
 	_ = json.NewEncoder(w).Encode(response)

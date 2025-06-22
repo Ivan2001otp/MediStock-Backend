@@ -11,7 +11,7 @@ import (
 func RegisterHospitalRoutes(apiRouter *mux.Router) {
 	apiRouter.Use(func(next http.Handler) http.Handler {
 		return middleware.RateLimitMiddleWare(next.ServeHTTP);
-	})
+	});
 
 	apiRouter.HandleFunc("/hospital-client", handlers.AddHospitalHandler).Methods("POST");
 	apiRouter.HandleFunc("/hospital-client/{id}", handlers.RetrieveUniqueHospital).Methods("GET")

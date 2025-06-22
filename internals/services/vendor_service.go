@@ -5,6 +5,7 @@ import (
 	models "Medistock_Backend/internals/models"
 	"fmt"
 	"log"
+	"strconv"
 )
 
 func UpdateVendor(updatedVendor models.Vendor) error {
@@ -154,8 +155,132 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 	}
 
 	return vendorList, nil
+}
+
+
+// vendor + supply
+func UpsertSupplyItemService(supplyModel models.Supply, vendorId int, supplyPrice string) error {
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewSupplyItemService)")
+		return fmt.Errorf("db instance is null.(AddNewSupplyItemService)")
+	}
+
+	var QUERY string = `
+		INSERT INTO supplies (id, name, sku, unit_of_measure, category, is_vital) 
+		VALUES (?, ?, ?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+			name = VALUES(name),
+			sku = VALUES(sku),
+			unit_of_measure = VALUES(unit_of_measure),
+			category = VALUES(category),
+			is_vital = VALUES(is_vital)
+	`
+
+	result, err := dbInstance.Exec(QUERY,
+		supplyModel.ID,
+		supplyModel.Name,
+		supplyModel.SKU,
+		supplyModel.UnitOfMeasure,
+		supplyModel.Category,
+		supplyModel.IsVital)
+
+	if err != nil {
+		log.Println("failed to execute upsert supply item service !")
+		log.Println(err.Error())
+		return err
+	}
+
+	// now add the supply item in supply-vendor table
+	vendorModel, _ := RetrieveVendor(vendorId)
+	amount, _ := strconv.ParseFloat(supplyPrice, 64)
+
+	QUERY = `
+		INSERT INTO vendor_supply_prices (vendor_id,supply_id,unit_price,quality_rating,avg_delivery_days)
+		VALUES (?,?,?,?,?) 
+		ON DUPLICATE KEY UPDATE 
+			unit_price=VALUES(unit_price),
+			quality_rating=VALUES(quality_rating),
+			avg_delivery_days=VALUES(avg_delivery_days)
+	`
+
+	result, err = dbInstance.Exec(QUERY,
+		vendorId,
+		supplyModel.ID,
+		amount,
+		vendorModel.OverallQualityRating,
+		vendorModel.AvgDeliveryTimeDays)
+
+	if err != nil {
+		log.Println("Failed to upsert supply-combo-vendor record!")
+		log.Println(err.Error())
+		return err
+	}
+
+	resultId, err := result.LastInsertId()
+	if err != nil {
+		log.Println("Failed to get Last inserted Id !")
+		log.Println(err.Error())
+		return err
+	}
+
+	log.Println("Successfully added the supply-combo-vendor record.", resultId)
+	return nil
 
 }
+
+func RetrieveSupply(supplyId string) (*models.Supply, error) {
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+		return nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)")
+	}
+
+	var QUERY string = `
+		SELECT * from supplies where id = ?;
+	`
+
+	result, err := dbInstance.Query(QUERY, supplyId)
+	if err != nil {
+		log.Printf("Failed to insert vendor : %v", err)
+		return nil, err
+	}
+
+	defer result.Close()
+	var supply models.Supply
+
+	for result.Next() {
+		err := result.Scan(
+			&supply.ID,
+			&supply.Name,
+			&supply.SKU,
+			&supply.UnitOfMeasure,
+			&supply.Category,
+			&supply.IsVital,
+			&supply.CreatedAt,
+			&supply.UpdatedAt,
+			
+		)
+
+		if err != nil {
+			log.Printf("Error scanning vendor row : %v", err)
+			return nil, err
+		}
+
+		break
+	}
+
+	if err := result.Err(); err != nil {
+		log.Printf("Row iteration error : %v", err)
+		return nil, err
+	}
+
+	return &supply, nil
+}
+
+
 
 func AddNewVendorservice(vendorModel models.Vendor) error {
 	dbInstance := DB.Get()
