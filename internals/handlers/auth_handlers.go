@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,25 +18,29 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request models.User
-	json.NewDecoder(r.Body).Decode(request)
+	json.NewDecoder(r.Body).Decode(&request)
+
+	log.Println("email : ", request.Email)
+	log.Println("pass : ", request.Password)
+	log.Println("role : ", request.Actor)
 
 	access_token, refresh_token, err, status_code := services.ProcessAndGenerateTokenService(request)
 
 	if err != nil {
-		http.Error(w, err.Error(), status_code);
-		return;
+		http.Error(w, err.Error(), status_code)
+		return
 	}
 
 	response := models.Message{
-		"status":http.StatusOK,
-		"message":"success",
-		"data" : models.Message{
-			"access_token":access_token,
-			"refresh_token":refresh_token,
+		"status":  http.StatusOK,
+		"message": "success",
+		"data": models.Message{
+			"access_token":  access_token,
+			"refresh_token": refresh_token,
 		},
 	}
 
-	json.NewEncoder(w).Encode(response);
+	json.NewEncoder(w).Encode(response)
 
 }
 
@@ -46,7 +51,25 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	json.NewDecoder(r.Body).Decode(user)
+	validationController := validator.New()
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// log.Println("email : ", user.Email)
+	// log.Println("password : ", user.Password)
+	// log.Println("actor : ", user.Actor)
+
+	validationErr := validationController.Struct(&user)
+	if validationErr != nil {
+		w.Write([]byte("validations verification failed on parsed body"))
+		log.Panic("validations verification failed on parsed body - ", validationErr)
+		return
+	}
 
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -64,9 +87,9 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	response := models.Message{
-		"status":  http.StatusCreated,
+		"status":  http.StatusOK,
 		"message": "success",
 		"data":    "User Registered - " + user.Email,
 	}
@@ -78,26 +101,26 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	// in request body we will send, the "refresh-token".
 	// this is made ccall from frontend in the interceptor.
 	if r.Method != http.MethodPost {
-		http.Error(w, "Supposed to be POST", http.StatusBadRequest);
-		return;
+		http.Error(w, "Supposed to be POST", http.StatusBadRequest)
+		return
 	}
 
 	var request struct {
 		Refresh_Token string `json:"refresh_token"`
 	}
 
-	json.NewDecoder(r.Body).Decode(&request);
-	new_access_token ,err, statusCode :=  services.RenewAccessTokenService(request.Refresh_Token)
-	if err !=  nil {
-		http.Error(w, err.Error(), statusCode);
-		return;
+	json.NewDecoder(r.Body).Decode(&request)
+	new_access_token, err, statusCode := services.RenewAccessTokenService(request.Refresh_Token)
+	if err != nil {
+		http.Error(w, err.Error(), statusCode)
+		return
 	}
 
 	response := models.Message{
-		"status":http.StatusOK,
-		"message":"success",
-		"data" : models.Message{
-			"access_token":new_access_token,
+		"status":  http.StatusOK,
+		"message": "success",
+		"data": models.Message{
+			"access_token": new_access_token,
 		},
 	}
 

@@ -23,7 +23,7 @@ func CheckRoleMiddleware(expectedRole string) func(http.Handler) http.Handler {
 				http.Error(w, "Forbidden:Access Denied", http.StatusForbidden)
 				return
 			}
-
+			log.Println("Role values are passed as SAME ... ")
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -31,37 +31,37 @@ func CheckRoleMiddleware(expectedRole string) func(http.Handler) http.Handler {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(
-		func (w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "Missing or Malformed token", http.StatusUnauthorized)
-			return
-		}
-
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
-		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) { return services.GetSecretKey(), nil })
-
-		if err != nil {
-			log.Println("Something wrong happened in Auth-Middlewaure : ", err.Error())
-			if err.(*jwt.ValidationError).Errors == jwt.ValidationErrorExpired {
-				http.Error(w, "Access Token Expired", http.StatusUnauthorized)
-			} else {
-				http.Error(w, "Invalid Token", http.StatusUnauthorized)
+		func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(w, "Missing or Malformed token", http.StatusUnauthorized)
+				return
 			}
-			return
-		}
 
-		if !token.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
+			tokenStr := strings.TrimPrefix(authHeader, "Bearer")
+			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) { return services.GetSecretKey(), nil })
 
-		}
+			if err != nil {
+				log.Println("Something wrong happened in Auth-Middlewaure : ", err.Error())
+				if err.(*jwt.ValidationError).Errors == jwt.ValidationErrorExpired {
+					http.Error(w, "Access Token Expired", http.StatusUnauthorized)
+				} else {
+					http.Error(w, "Invalid Token", http.StatusUnauthorized)
+				}
+				return
+			}
 
-		claims := token.Claims.(jwt.MapClaims)
-		ctx := context.WithValue(r.Context(), "email", claims["email"])
-		ctx = context.WithValue(ctx, "actor", claims["actor"])
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			if !token.Valid {
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				return
+
+			}
+
+			claims := token.Claims.(jwt.MapClaims)
+			ctx := context.WithValue(r.Context(), "email", claims["email"])
+			ctx = context.WithValue(ctx, "actor", claims["actor"])
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 }
 
 func RateLimitMiddleWare(next func(w http.ResponseWriter, r *http.Request)) http.Handler {
