@@ -1,4 +1,5 @@
 CREATE INDEX idx_email_actor ON medistock_db.auth_token(email,actor);
+CREATE INDEX idx_vendor ON medistock_db.vendor_supply_prices(vendor_id);
 
 CREATE TABLE IF NOT EXISTS hospitals (
     id VARCHAR(36) PRIMARY KEY, -- Using UUID for unique Hospital ID
