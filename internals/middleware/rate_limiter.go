@@ -38,8 +38,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			tokenStr := strings.TrimPrefix(authHeader, "Bearer")
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) { return services.GetSecretKey(), nil })
+			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+			log.Println("token sent in header : ", tokenStr)
+
+			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+				return []byte(services.GetSecretKey()), nil
+			})
 
 			if err != nil {
 				log.Println("Something wrong happened in Auth-Middlewaure : ", err.Error())
