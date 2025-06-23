@@ -12,9 +12,44 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func ProcessAndGenerateTokens(user models.User) (*string, *string, error, int) {
+func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	dbInstance := DB.Get()
 
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+		return nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)"), http.StatusInternalServerError
+	}
+
+	var email, actor string
+	var expiry time.Time
+
+	err := dbInstance.QueryRow(`SELECT email,actor,refresh_token,expiry_time from auth_token where refresh_token = ?`, refreshToken).Scan(&email, &actor, &expiry)
+
+	if err != nil {
+		log.Println("Something went wrong on renewing fresh accesstokens !")
+		return nil, err, http.StatusInternalServerError
+	}
+
+	if time.Now().After(expiry) {
+		return nil, fmt.Errorf("Expired refresh token"), http.StatusUnauthorized
+	}
+
+	newAccessToken, err := GenerateAccessToken(email, actor)
+	if err != nil {
+		log.Println("Something went wrong while generating new access tokens (auth_service.go)")
+		return nil, err, http.StatusInternalServerError
+	}
+
+	return &newAccessToken, nil, http.StatusOK
+}
+
+func ProcessAndGenerateTokenService(user models.User) (*string, *string, error, int) {
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+		return nil,nil,fmt.Errorf("db instance is null.(RetrieveAllVendors)"),http.StatusInternalServerError
+	}
 	var newUser models.User
 	err := dbInstance.QueryRow("SELECT id,password FROM users WHERE email = ? AND actor = ?", user.Email, user.Actor).Scan(&user.ID, &user.Password)
 	if err != nil {
@@ -29,19 +64,18 @@ func ProcessAndGenerateTokens(user models.User) (*string, *string, error, int) {
 
 	}
 
-	access_token,_ := GenerateAccessToken(user.Email, user.Actor);
-	refresh_token  := GenerateRefreshToken()
+	access_token, _ := GenerateAccessToken(user.Email, user.Actor)
+	refresh_token := GenerateRefreshToken()
 
-	expiry := time.Now().Add(2 * 24 * time.Hour);
-	_,err = dbInstance.Exec(`INSERT INTO auth_token (?,?,?,?) VALUES (email,actor,refresh_token,expiry_time)`,newUser.Email, newUser.Actor,refresh_token, expiry);
+	expiry := time.Now().Add(2 * 24 * time.Hour)
+	_, err = dbInstance.Exec(`INSERT INTO auth_token (?,?,?,?) VALUES (email,actor,refresh_token,expiry_time)`, newUser.Email, newUser.Actor, refresh_token, expiry)
 
 	if err != nil {
-		log.Println("something went wrong while saving refresh-tokens.");
-		return nil,nil,err,http.StatusInternalServerError;
+		log.Println("something went wrong while saving refresh-tokens.")
+		return nil, nil, err, http.StatusInternalServerError
 	}
 
-	return &access_token, &refresh_token, nil, http.StatusCreated;
-	
+	return &access_token, &refresh_token, nil, http.StatusCreated
 
 }
 
@@ -80,6 +114,10 @@ func GenerateAccessToken(email, actor string) (string, error) {
 
 func GenerateRefreshToken() string {
 	return GenerateUUID()
+}
+
+func GetSecretKey() string {
+	return access_secret_key;
 }
 
 var access_secret_key string = `b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAACFwAAAAdzc2gtcn

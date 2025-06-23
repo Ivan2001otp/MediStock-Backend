@@ -2,6 +2,8 @@ package main
 
 import (
 	db "Medistock_Backend/internals/db"
+	"Medistock_Backend/internals/handlers"
+	"Medistock_Backend/internals/middleware"
 	routers "Medistock_Backend/internals/routers"
 	"context"
 	"log"
@@ -40,10 +42,22 @@ func main() {
 	// initializing all routers here
 	mainRouter := mux.NewRouter()
 
+	// public routes
+	mainRouter.HandleFunc("/api/v1/login", handlers.LoginHanlder).Methods("POST");
+	mainRouter.HandleFunc("/api/v1/register", handlers.RegisterHandler).Methods("POST");
+	mainRouter.HandleFunc("/api/v1/refresh-token",handlers.RefreshHandler).Methods("POST")
+
+	// Adding routes for login,register
 	vendorRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
 	hospitalRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
 
+	// Apply Middlewares
+	vendorRouters.Use(middleware.AuthMiddleware)
+	vendorRouters.Use(middleware.CheckRoleMiddleware("VENDOR"))
 	routers.RegisterVendorRoutes(vendorRouters)
+
+	hospitalRouters.Use(middleware.AuthMiddleware)
+	hospitalRouters.Use(middleware.CheckRoleMiddleware("HOSPITAL"))
 	routers.RegisterHospitalRoutes(hospitalRouters)
 
 	// setting handler with cors config.
