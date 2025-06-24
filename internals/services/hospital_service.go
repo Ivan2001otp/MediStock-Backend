@@ -7,6 +7,54 @@ import (
 	"log"
 )
 
+func RetrieveHospitalByEmail(email string) (*models.Hospital, error) {
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(RetrieveHospitalByEmail)")
+		return nil, fmt.Errorf("db instance is null.(RetrieveHospitalByEmail)")
+	}
+
+	var QUERY string = `
+		SELECT * from hospitals where contact_email = ?;
+	`
+
+	result, err := dbInstance.Query(QUERY, email)
+
+	if err != nil {
+		log.Printf("Failed to insert vendor : %v", err)
+		return nil, err
+	}
+
+	defer result.Close()
+	var hospital models.Hospital
+
+	for result.Next() {
+		err := result.Scan(
+			&hospital.ID,
+			&hospital.Name,
+			&hospital.Address,
+			&hospital.ContactEmail,
+			&hospital.ContactPhone,
+			&hospital.CreatedAt,
+			&hospital.UpdatedAt,
+		)
+
+		if err != nil {
+			log.Printf("Error scanning hospital row : %v", err)
+			return nil, err
+		}
+		break
+	}
+
+	if err := result.Err(); err != nil {
+		log.Printf("Row iteration error : %v", err)
+		return nil, err
+	}
+
+	return &hospital, nil
+}
+
 func RetrieveHospital(hospitalId string) (*models.Hospital, error) {
 	dbInstance := DB.Get()
 

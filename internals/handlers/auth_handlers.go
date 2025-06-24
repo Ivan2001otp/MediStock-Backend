@@ -18,6 +18,7 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request models.User
+	var err error
 	json.NewDecoder(r.Body).Decode(&request)
 
 	log.Println("email : ", request.Email)
@@ -31,13 +32,56 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := models.Message{
-		"status":  http.StatusOK,
-		"message": "success",
-		"data": models.Message{
-			"access_token":  access_token,
-			"refresh_token": refresh_token,
-		},
+	var response models.Message
+
+	if request.Actor == "VENDOR" {
+
+		vendor, err := services.RetrieveVendorByEmail(request.Email)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		response = models.Message{
+			"status":  http.StatusOK,
+			"message": "success",
+			"data": models.Message{
+				"id":                 vendor.ID,
+				"access_token":       access_token,
+				"refresh_token":      refresh_token,
+				"vendor_name":        vendor.Name,
+				"vendor_email":       vendor.Email,
+				"vendor_address":     vendor.Address,
+				"contact":            vendor.ContactPerson,
+				"avg_delievery_days": vendor.AvgDeliveryTimeDays,
+				"score":              vendor.Score,
+				"rating":             vendor.OverallQualityRating,
+				"updated_at":         vendor.UpdatedAt,
+			},
+		}
+	} else {
+		// Hospital client
+		hospital, err := services.RetrieveHospitalByEmail(request.Email)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusConflict) // 409
+			return
+		}
+
+		response = models.Message{
+			"status":  http.StatusOK,
+			"message": "success",
+			"data": models.Message{
+				"id":             hospital.ID,
+				"access_token":   access_token,
+				"refresh_token":  refresh_token,
+				"vendor_name":    hospital.Name,
+				"vendor_email":   hospital.ContactEmail,
+				"vendor_address": hospital.Address,
+				"contact":        hospital.ContactPhone,
+				"updated_at":     hospital.UpdatedAt,
+			},
+		}
 	}
 
 	json.NewEncoder(w).Encode(response)

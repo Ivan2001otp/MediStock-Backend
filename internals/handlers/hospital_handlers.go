@@ -41,6 +41,7 @@ func RetrieveUniqueHospital(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
 func AddHospitalHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {

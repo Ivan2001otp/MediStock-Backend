@@ -42,12 +42,65 @@ func UpdateVendor(updatedVendor models.Vendor) error {
 	return nil
 }
 
+func RetrieveVendorByEmail(vendorEmail string) (*models.Vendor, error) {
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(RetrieveVendor)")
+		return nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)")
+	}
+
+	var QUERY string = `
+		SELECT * from vendors where email = ?;
+	`
+
+	result, err := dbInstance.Query(QUERY, vendorEmail)
+	if err != nil {
+		log.Printf("Failed to retrieve vendor by email : %v", err)
+		return nil, err
+	}
+
+	defer result.Close()
+	var vendor models.Vendor
+
+	for result.Next() {
+		err := result.Scan(
+			&vendor.ID,
+			&vendor.Name,
+			&vendor.ContactPerson,
+			&vendor.Email,
+			&vendor.Phone,
+			&vendor.Address,
+			&vendor.OverallQualityRating,
+			&vendor.AvgDeliveryTimeDays,
+			&vendor.Score,
+			&vendor.CreatedAt,
+			&vendor.UpdatedAt,
+		)
+
+		if err != nil {
+			log.Printf("Error scanning vendor row : %v", err)
+			return nil, err
+		}
+
+		break
+	}
+
+	if err := result.Err(); err != nil {
+		log.Printf("Row iteration error : %v", err)
+		return nil, err
+	}
+
+	return &vendor, nil
+
+}
+
 // fetch vendor by its id
 func RetrieveVendor(vendorId int) (*models.Vendor, error) {
 	dbInstance := DB.Get()
 
 	if dbInstance == nil {
-		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+		log.Fatal("Db Instance is null.(RetrieveVendor)")
 		return nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)")
 	}
 
@@ -57,7 +110,7 @@ func RetrieveVendor(vendorId int) (*models.Vendor, error) {
 
 	result, err := dbInstance.Query(QUERY, vendorId)
 	if err != nil {
-		log.Printf("Failed to insert vendor : %v", err)
+		log.Printf("Failed to retrieve vendor : %v", err)
 		return nil, err
 	}
 
