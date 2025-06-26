@@ -11,6 +11,27 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	// "email","actor" as query params
+	email := r.URL.Query().Get("email")
+	actor := r.URL.Query().Get("actor") //VENDOR or HOSPITAL
+
+	err := services.LogoutService(email, actor)
+	if err != nil {
+		log.Println("Something went wrong on logging out user !")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	message := models.Message{
+		"status":  http.StatusOK,
+		"message": "log out success",
+	}
+
+	_ = json.NewEncoder(w).Encode(message)
+}
+
 func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -23,10 +44,23 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("email : ", request.Email)
 	log.Println("pass : ", request.Password)
-	log.Println("role : ", request.Actor)
+	// log.Println("role : ", request.Actor)
+
+	fetchedUser, err := services.FetchUserByEmail(request.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNoContent) //204 status
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(fetchedUser.Password), []byte(request.Password))
+
+	if err != nil {
+		log.Println("The password is not same. Thus its invalid !")
+		http.Error(w, "Password is invalid", http.StatusNoContent)
+		return
+	}
 
 	access_token, refresh_token, err, status_code := services.ProcessAndGenerateTokenService(request)
-
 	if err != nil {
 		http.Error(w, err.Error(), status_code)
 		return
@@ -34,10 +68,12 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 
 	var response models.Message
 
-	if request.Actor == "VENDOR" {
+	if fetchedUser.Actor == "VENDOR" {
 
-		vendor, err := services.RetrieveVendorByEmail(request.Email)
+		vendor, err := services.RetrieveVendorByEmail(fetchedUser.Email)
 		if err != nil {
+			log.Println("There is no vendor with email", fetchedUser.Email)
+			log.Println("May be something gone wrong while retrieving vendor by email!")
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
@@ -61,10 +97,10 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Hospital client
-		hospital, err := services.RetrieveHospitalByEmail(request.Email)
+		hospital, err := services.RetrieveHospitalByEmail(fetchedUser.Email)
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusConflict) // 409
+			http.Error(w, err.Error(), http.StatusForbidden) // 403
 			return
 		}
 

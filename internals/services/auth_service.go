@@ -12,6 +12,57 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func LogoutService(email, actor string) error {
+	//actor means VENDOR or HOSPITAL.
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+		return fmt.Errorf("db instance is null.(RetrieveAllVendors)")
+	}
+
+	var QUERY string = `DELETE FROM auth_token where email=? and actor=?`
+	_, err := dbInstance.Exec(QUERY, email, actor)
+	if err != nil {
+		log.Println("Db Error .Error during logout : ", err.Error())
+
+		return err
+	}
+
+	return nil
+}
+
+func FetchUserByEmail(email string) (*models.User, error) {
+	dbInstance := DB.Get()
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+		return nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)")
+	}
+
+	var QUERY string = `SELECT id,actor,password from users where email = ?`
+	var id int
+	var actor, hashPassword string = "", ""
+
+	err := dbInstance.QueryRow(QUERY, email).Scan(&id, &actor, &hashPassword)
+	if err != nil {
+		log.Println("The record does not exists in DB for email : ", email)
+		return nil, fmt.Errorf("Something happened while searching user by email")
+	}
+
+	if actor == "" && hashPassword == "" {
+		return nil, fmt.Errorf("No user with %s exists", email)
+	}
+
+	var user models.User
+	user.ID = id
+	user.Actor = actor
+	user.Email = email
+	user.Password = hashPassword
+
+	return &user, nil
+}
+
 func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	dbInstance := DB.Get()
 
@@ -62,7 +113,6 @@ func ProcessAndGenerateTokenService(user models.User) (*string, *string, error, 
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password)); err != nil {
 		return nil, nil, fmt.Errorf("Invalid Password"), http.StatusUnauthorized
-
 	}
 
 	access_token, err := GenerateAccessToken(user.Email, user.Actor)

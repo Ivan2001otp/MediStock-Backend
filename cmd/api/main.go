@@ -36,7 +36,7 @@ func main() {
 
 	// define cors config
 	corsOptions := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
 	})
 
 	// initializing all routers here
@@ -50,15 +50,19 @@ func main() {
 	// Adding routes for login,register
 	vendorRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
 	hospitalRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
+	commonRouters := mainRouter.PathPrefix("/api/v1").Subrouter();
+
 
 	// Apply Middlewares
 	vendorRouters.Use(middleware.AuthMiddleware)
 	vendorRouters.Use(middleware.CheckRoleMiddleware("VENDOR"))
 	routers.RegisterVendorRoutes(vendorRouters)
 
-	hospitalRouters.Use(middleware.AuthMiddleware)
-	hospitalRouters.Use(middleware.CheckRoleMiddleware("HOSPITAL"))
-	routers.RegisterHospitalRoutes(hospitalRouters)
+	hospitalRouters.Use(middleware.AuthMiddleware);
+	hospitalRouters.Use(middleware.CheckRoleMiddleware("HOSPITAL"));
+	routers.RegisterHospitalRoutes(hospitalRouters);
+
+	routers.RegisterCommonRouters(commonRouters);
 
 	// setting handler with cors config.
 	handler := corsOptions.Handler(mainRouter) // ?
