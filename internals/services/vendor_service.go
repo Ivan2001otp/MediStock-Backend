@@ -341,7 +341,7 @@ func AddNewVendorservice(vendorModel models.Vendor) error {
 	}
 
 	var QUERY string = `
-		INSERT INTO vendors (name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days)
+		INSERT IGNORE INTO vendors (name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days)
 		VALUES (?,?,?,?,?,?,?)
 		`
 

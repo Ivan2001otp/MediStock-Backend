@@ -259,9 +259,7 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&vendor)
 	if err != nil {
-		// services.SetErrorResponse(w, http.StatusInternalServerError, "failed to parse request body")
 		log.Printf("Something went wrong while creating new vendor : %v", err)
-		// log.Error(err) //exit
 		return
 	}
 

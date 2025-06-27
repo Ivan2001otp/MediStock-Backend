@@ -36,33 +36,35 @@ func main() {
 
 	// define cors config
 	corsOptions := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedOrigins:   []string{"http://localhost:5173"},
 	})
 
 	// initializing all routers here
 	mainRouter := mux.NewRouter()
 
 	// public routes
-	mainRouter.HandleFunc("/api/v1/login", handlers.LoginHanlder).Methods("POST");
-	mainRouter.HandleFunc("/api/v1/register", handlers.RegisterHandler).Methods("POST");
-	mainRouter.HandleFunc("/api/v1/refresh-token",handlers.RefreshHandler).Methods("POST")
+	mainRouter.HandleFunc("/api/v1/login", handlers.LoginHanlder).Methods("POST")
+	mainRouter.HandleFunc("/api/v1/register", handlers.RegisterHandler).Methods("POST")
+	mainRouter.HandleFunc("/api/v1/refresh-token", handlers.RefreshHandler).Methods("POST")
 
 	// Adding routes for login,register
 	vendorRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
 	hospitalRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
-	commonRouters := mainRouter.PathPrefix("/api/v1").Subrouter();
-
+	commonRouters := mainRouter.PathPrefix("/api/v1").Subrouter()
 
 	// Apply Middlewares
 	vendorRouters.Use(middleware.AuthMiddleware)
 	vendorRouters.Use(middleware.CheckRoleMiddleware("VENDOR"))
 	routers.RegisterVendorRoutes(vendorRouters)
 
-	hospitalRouters.Use(middleware.AuthMiddleware);
-	hospitalRouters.Use(middleware.CheckRoleMiddleware("HOSPITAL"));
-	routers.RegisterHospitalRoutes(hospitalRouters);
+	hospitalRouters.Use(middleware.AuthMiddleware)
+	hospitalRouters.Use(middleware.CheckRoleMiddleware("HOSPITAL"))
+	routers.RegisterHospitalRoutes(hospitalRouters)
 
-	routers.RegisterCommonRouters(commonRouters);
+	routers.RegisterCommonRouters(commonRouters)
 
 	// setting handler with cors config.
 	handler := corsOptions.Handler(mainRouter) // ?

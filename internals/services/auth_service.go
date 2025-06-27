@@ -82,7 +82,7 @@ func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	}
 
 	if time.Now().After(expiry) {
-		return nil, fmt.Errorf("Expired refresh token"), http.StatusUnauthorized
+		return nil, fmt.Errorf("Expired refresh token"), http.StatusForbidden // 403
 	}
 
 	newAccessToken, err := GenerateAccessToken(email, actor)

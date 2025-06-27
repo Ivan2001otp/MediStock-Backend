@@ -81,7 +81,7 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 		response = models.Message{
 			"status":  http.StatusOK,
 			"message": "success",
-			"data": models.Message{
+			"data": map[string]interface{}{
 				"id":                 vendor.ID,
 				"access_token":       access_token,
 				"refresh_token":      refresh_token,
@@ -121,7 +121,6 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
-
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,9 +139,9 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log.Println("email : ", user.Email)
-	// log.Println("password : ", user.Password)
-	// log.Println("actor : ", user.Actor)
+	log.Println("email : ", user.Email)
+	log.Println("password : ", user.Password)
+	log.Println("actor : ", user.Actor)
 
 	validationErr := validationController.Struct(&user)
 	if validationErr != nil {
@@ -167,11 +166,22 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	access_token, refresh_token, err, _ := services.ProcessAndGenerateTokenService(user);
+
+	if err != nil {
+		log.Println("Something went wrong while registration new user. Could not generate tokens !", err);
+		http.Error(w, err.Error(), http.StatusInternalServerError);
+		return;
+	}
+
 	w.WriteHeader(http.StatusOK)
 	response := models.Message{
-		"status":  http.StatusOK,
+		"status": http.StatusOK,
 		"message": "success",
-		"data":    "User Registered - " + user.Email,
+		"data": map[string]interface{}{
+			"access_token":access_token,
+			"refresh_token":refresh_token,
+		},
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -195,7 +205,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
-
+	w.WriteHeader(http.StatusOK)
 	response := models.Message{
 		"status":  http.StatusOK,
 		"message": "success",
