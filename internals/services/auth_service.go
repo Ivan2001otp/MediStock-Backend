@@ -77,7 +77,7 @@ func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	err := dbInstance.QueryRow(`SELECT email,actor,expiry_time from auth_token where refresh_token = ?`, refreshToken).Scan(&email, &actor, &expiry)
 
 	if err != nil {
-		log.Println("Something went wrong on renewing fresh accesstokens !")
+		log.Fatalf("Something went wrong on renewing fresh accesstokens : %v", err);
 		return nil, err, http.StatusInternalServerError
 	}
 
@@ -107,7 +107,7 @@ func ProcessAndGenerateTokenService(user models.User) (*string, *string, error, 
 
 	if err != nil {
 		log.Println("WARNING : Something went wrong while searching for exising user .")
-		log.Println(err.Error())
+		log.Fatal(err.Error())
 		return nil, nil, fmt.Errorf("Invalid credentials"), http.StatusUnauthorized
 	}
 
@@ -132,6 +132,7 @@ func ProcessAndGenerateTokenService(user models.User) (*string, *string, error, 
 
 	if err != nil {
 		log.Println("something went wrong while saving refresh-tokens.")
+		log.Fatal(err);
 		return nil, nil, err, http.StatusInternalServerError
 	}
 

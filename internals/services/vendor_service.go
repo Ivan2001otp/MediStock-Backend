@@ -340,6 +340,9 @@ func AddNewVendorservice(vendorModel models.Vendor) error {
 		return fmt.Errorf("db instance is null.(AddNewVendorservice)")
 	}
 
+	log.Println("avg-delivery-time : ", vendorModel.AvgDeliveryTimeDays);
+	log.Println("quality-rating : ", vendorModel.OverallQualityRating);
+
 	var QUERY string = `
 		INSERT IGNORE INTO vendors (name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days)
 		VALUES (?,?,?,?,?,?,?)

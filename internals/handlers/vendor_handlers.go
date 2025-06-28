@@ -273,6 +273,9 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 
 	// created, updated_at is handled by mysql
 	log.Print("Adding new vendor to db !")
+	log.Println("AVG - ", vendor.AvgDeliveryTimeDays);
+	log.Println("RATING - ", vendor.OverallQualityRating);
+
 	err = services.AddNewVendorservice(vendor)
 	if err != nil {
 		log.Panic(err)
