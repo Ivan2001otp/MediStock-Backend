@@ -32,7 +32,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(message)
 }
 
-func LoginHanlder(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 		return
@@ -44,10 +44,11 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("email : ", request.Email)
 	log.Println("pass : ", request.Password)
-	// log.Println("role : ", request.Actor)
+	log.Println("role : ", request.Actor)
 
 	fetchedUser, err := services.FetchUserByEmail(request.Email)
 	if err != nil {
+		log.Println("user for the given email does not exist")
 		http.Error(w, err.Error(), http.StatusNoContent) //204 status
 		return
 	}
@@ -68,59 +69,18 @@ func LoginHanlder(w http.ResponseWriter, r *http.Request) {
 
 	var response models.Message
 
-	if fetchedUser.Actor == "VENDOR" {
-
-		vendor, err := services.RetrieveVendorByEmail(fetchedUser.Email)
-		if err != nil {
-			log.Println("There is no vendor with email", fetchedUser.Email)
-			log.Println("May be something gone wrong while retrieving vendor by email!")
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		response = models.Message{
-			"status":  http.StatusOK,
-			"message": "success",
-			"data": map[string]interface{}{
-				"id":                 vendor.ID,
-				"access_token":       access_token,
-				"refresh_token":      refresh_token,
-				"vendor_name":        vendor.Name,
-				"vendor_email":       vendor.Email,
-				"vendor_address":     vendor.Address,
-				"contact":            vendor.ContactPerson,
-				"avg_delievery_days": vendor.AvgDeliveryTimeDays,
-				"score":              vendor.Score,
-				"rating":             vendor.OverallQualityRating,
-				"updated_at":         vendor.UpdatedAt,
-			},
-		}
-	} else {
-		// Hospital client
-		hospital, err := services.RetrieveHospitalByEmail(fetchedUser.Email)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusForbidden) // 403
-			return
-		}
-
-		response = models.Message{
-			"status":  http.StatusOK,
-			"message": "success",
-			"data": models.Message{
-				"id":             hospital.ID,
-				"access_token":   access_token,
-				"refresh_token":  refresh_token,
-				"vendor_name":    hospital.Name,
-				"vendor_email":   hospital.ContactEmail,
-				"vendor_address": hospital.Address,
-				"contact":        hospital.ContactPhone,
-				"updated_at":     hospital.UpdatedAt,
-			},
-		}
+	response = models.Message{
+		"status":  http.StatusOK,
+		"message": "success",
+		"data": map[string]interface{}{
+			"access_token":  access_token,
+			"refresh_token": refresh_token,
+			"actor":         fetchedUser.Actor,
+			"email":         fetchedUser.Email,
+		},
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -166,21 +126,21 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	access_token, refresh_token, err, _ := services.ProcessAndGenerateTokenService(user);
+	access_token, refresh_token, err, _ := services.ProcessAndGenerateTokenService(user)
 
 	if err != nil {
-		log.Println("Something went wrong while registration new user. Could not generate tokens !", err);
-		http.Error(w, err.Error(), http.StatusInternalServerError);
-		return;
+		log.Println("Something went wrong while registration new user. Could not generate tokens !", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	response := models.Message{
-		"status": http.StatusOK,
+		"status":  http.StatusOK,
 		"message": "success",
 		"data": map[string]interface{}{
-			"access_token":access_token,
-			"refresh_token":refresh_token,
+			"access_token":  access_token,
+			"refresh_token": refresh_token,
 		},
 	}
 
@@ -205,6 +165,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 	response := models.Message{
 		"status":  http.StatusOK,

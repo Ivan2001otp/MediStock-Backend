@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func LogoutService(email, actor string) error {
@@ -40,7 +39,7 @@ func FetchUserByEmail(email string) (*models.User, error) {
 		return nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)")
 	}
 
-	var QUERY string = `SELECT id,actor,password from users where email = ?`
+	var QUERY string = `SELECT id,actor,password from users where email = ?;`
 	var id int
 	var actor, hashPassword string = "", ""
 
@@ -77,7 +76,7 @@ func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	err := dbInstance.QueryRow(`SELECT email,actor,expiry_time from auth_token where refresh_token = ?`, refreshToken).Scan(&email, &actor, &expiry)
 
 	if err != nil {
-		log.Fatalf("Something went wrong on renewing fresh accesstokens : %v", err);
+		log.Fatalf("Something went wrong on renewing fresh accesstokens : %v", err)
 		return nil, err, http.StatusInternalServerError
 	}
 
@@ -91,6 +90,7 @@ func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 		return nil, err, http.StatusInternalServerError
 	}
 
+	log.Println("Generated new access token !");
 	return &newAccessToken, nil, http.StatusOK
 }
 
@@ -102,24 +102,10 @@ func ProcessAndGenerateTokenService(user models.User) (*string, *string, error, 
 		return nil, nil, fmt.Errorf("db instance is null.(RetrieveAllVendors)"), http.StatusInternalServerError
 	}
 
-	var hashedPassword string
-	err := dbInstance.QueryRow("SELECT password FROM users WHERE email = ? AND actor = ?", user.Email, user.Actor).Scan(&hashedPassword)
-
-	if err != nil {
-		log.Println("WARNING : Something went wrong while searching for exising user .")
-		log.Fatal(err.Error())
-		return nil, nil, fmt.Errorf("Invalid credentials"), http.StatusUnauthorized
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password)); err != nil {
-		return nil, nil, fmt.Errorf("Invalid Password"), http.StatusUnauthorized
-	}
-
 	access_token, err := GenerateAccessToken(user.Email, user.Actor)
 	if err != nil {
-		log.Println("Something went wrong ,when access_token was generated!")
-
-		return nil, nil, err, http.StatusInternalServerError
+		log.Println("Something went wrong ,when access_token was generated!");
+		return nil, nil, err, http.StatusInternalServerError;
 	}
 	refresh_token := GenerateRefreshToken()
 
@@ -132,7 +118,7 @@ func ProcessAndGenerateTokenService(user models.User) (*string, *string, error, 
 
 	if err != nil {
 		log.Println("something went wrong while saving refresh-tokens.")
-		log.Fatal(err);
+		log.Fatal(err)
 		return nil, nil, err, http.StatusInternalServerError
 	}
 
@@ -179,6 +165,7 @@ func GenerateAccessToken(email, actor string) (string, error) {
 }
 
 func GenerateRefreshToken() string {
+	log.Println("Generated refresh token")
 	return GenerateUUID()
 }
 

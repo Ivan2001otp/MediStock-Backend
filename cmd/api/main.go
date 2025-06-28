@@ -46,7 +46,7 @@ func main() {
 	mainRouter := mux.NewRouter()
 
 	// public routes
-	mainRouter.HandleFunc("/api/v1/login", handlers.LoginHanlder).Methods("POST")
+	mainRouter.HandleFunc("/api/v1/login", handlers.LoginHandler).Methods("POST")
 	mainRouter.HandleFunc("/api/v1/register", handlers.RegisterHandler).Methods("POST")
 	mainRouter.HandleFunc("/api/v1/refresh-token", handlers.RefreshHandler).Methods("POST")
 

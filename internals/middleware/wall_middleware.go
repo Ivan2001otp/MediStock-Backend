@@ -70,7 +70,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func RateLimitMiddleWare(next func(w http.ResponseWriter, r *http.Request)) http.Handler {
 
-	limiter := rate.NewLimiter(2, 4)
+	limiter := rate.NewLimiter(2, 3)
 
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
