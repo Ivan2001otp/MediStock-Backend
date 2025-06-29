@@ -28,4 +28,6 @@ func RegisterVendorRoutes(apiRouter *mux.Router) {
 	// This endpoint helps to update supply details from vendor
 	apiRouter.HandleFunc("/vendors/{id}", handlers.UpdateSupplyHandler).Methods("PATCH")
 
+	apiRouter.HandleFunc("/vendors-supply/{id}", handlers.RetrieveSuppliesOfVendor).Methods("GET");
+
 }

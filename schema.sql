@@ -84,3 +84,7 @@ CREATE TABLE IF NOT EXISTS inventory (
     FOREIGN KEY (hospital_id) REFERENCES hospitals(id) ON DELETE CASCADE on UPDATE CASCADE, -- If a hospital is deleted, its inventory is too
     FOREIGN KEY (supply_id) REFERENCES supplies(id) ON DELETE CASCADE on UPDATE CASCADE-- If a supply is deleted, its inventory record is too.
 );
+
+
+
+SELECT * FROM medistock_db.supplies where id in ( select supply_id from medistock_db.vendor_supply_prices where vendor_id=1);

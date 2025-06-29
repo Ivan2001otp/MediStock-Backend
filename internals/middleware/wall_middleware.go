@@ -20,6 +20,10 @@ func CheckRoleMiddleware(expectedRole string) func(http.Handler) http.Handler {
 			role, ok := r.Context().Value("actor").(string)
 
 			if !ok || role != expectedRole {
+				log.Println("roles not same.")
+				log.Println("expected-role : ", expectedRole)
+				log.Println("role : ", role)
+
 				http.Error(w, "Forbidden:Access Denied", http.StatusForbidden)
 				return
 			}
@@ -65,12 +69,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			ctx := context.WithValue(r.Context(), "email", claims["email"])
 			ctx = context.WithValue(ctx, "actor", claims["actor"])
 			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+		});
 }
 
 func RateLimitMiddleWare(next func(w http.ResponseWriter, r *http.Request)) http.Handler {
 
-	limiter := rate.NewLimiter(2, 3)
+	limiter := rate.NewLimiter(2, 2)
 
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -91,4 +95,3 @@ func RateLimitMiddleWare(next func(w http.ResponseWriter, r *http.Request)) http
 			}
 		})
 }
-

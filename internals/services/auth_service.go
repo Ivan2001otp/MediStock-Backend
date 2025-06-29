@@ -73,6 +73,7 @@ func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	var email, actor string
 	var expiry time.Time
 
+	log.Println("refresh-token to be renewed : ",refreshToken);
 	err := dbInstance.QueryRow(`SELECT email,actor,expiry_time from auth_token where refresh_token = ?`, refreshToken).Scan(&email, &actor, &expiry)
 
 	if err != nil {

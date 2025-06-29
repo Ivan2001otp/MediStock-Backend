@@ -127,6 +127,12 @@ func AddNewSupplyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("successfully inserted supply by vendorid ", vendorId)
+	response := models.Message {
+		"status" : http.StatusOK,
+		"message" : "success",
+	}
+
+	_ = json.NewEncoder(w).Encode(response);
 }
 
 func UpdateVendorHandler(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +163,7 @@ func UpdateVendorHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oldVendor, err := services.RetrieveVendor(vendorId)
+	oldVendor, err := services.RetrieveVendor(vendorId, "")//email can be empty, but vendorId must not
 	if err != nil {
 		log.Println("The vendor does not exists with vendorid-", vendorId)
 		http.Error(w, "vendor does not exist", http.StatusInternalServerError)
@@ -193,11 +199,16 @@ func RetrieveUniqueVendor(w http.ResponseWriter, r *http.Request) {
 		services.SetErrorResponse(w, http.StatusBadRequest, "supposed to be GET")
 		return
 	}
-
+	
 	params := mux.Vars(r)
 	vendorId, _ := strconv.Atoi(params["id"])
 
-	vendorModel, err := services.RetrieveVendor(vendorId)
+
+	// send email in query-params
+	query_params := r.URL.Query()
+	vendorEmail := query_params.Get("email")
+
+	vendorModel, err := services.RetrieveVendor(vendorId, vendorEmail)
 	if err != nil {
 		log.Println("Something went wrong while retrieving vendor by id")
 		http.Error(w, "", http.StatusInternalServerError)
@@ -291,4 +302,30 @@ func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// Retrieve supplies of a corresponding vendors.
+// The id of vendor is given to do the task.
+func RetrieveSuppliesOfVendor(w http.ResponseWriter, r * http.Request) {
+
+	if (r.Method != http.MethodGet) {
+		http.Error(w, "supposed to be GET request", http.StatusBadRequest);
+		return;
+	}
+
+	params := mux.Vars(r);
+	vendorId,_ := strconv.Atoi(params["id"]);
+
+	
+	var supplies []models.Supply = services.FetchSuppliesByVendorId(vendorId);
+
+	response := models.Message {
+		"status":http.StatusOK,
+		"message":"success",
+		"data":supplies,
+	}
+
+	w.WriteHeader(http.StatusOK);
+	_ = json.NewEncoder(w).Encode(response);
+
 }

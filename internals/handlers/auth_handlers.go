@@ -44,7 +44,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("email : ", request.Email)
 	log.Println("pass : ", request.Password)
-	log.Println("role : ", request.Actor)
+	// log.Println("role : ", request.Actor)
 
 	fetchedUser, err := services.FetchUserByEmail(request.Email)
 	if err != nil {
@@ -61,7 +61,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	access_token, refresh_token, err, status_code := services.ProcessAndGenerateTokenService(request)
+	access_token, refresh_token, err, status_code := services.ProcessAndGenerateTokenService(*fetchedUser)
 	if err != nil {
 		http.Error(w, err.Error(), status_code)
 		return

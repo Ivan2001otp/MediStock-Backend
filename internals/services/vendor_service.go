@@ -92,11 +92,10 @@ func RetrieveVendorByEmail(vendorEmail string) (*models.Vendor, error) {
 	}
 
 	return &vendor, nil
-
 }
 
 // fetch vendor by its id
-func RetrieveVendor(vendorId int) (*models.Vendor, error) {
+func RetrieveVendor(vendorId int, vendorEmail string) (*models.Vendor, error) {
 	dbInstance := DB.Get()
 
 	if dbInstance == nil {
@@ -105,10 +104,10 @@ func RetrieveVendor(vendorId int) (*models.Vendor, error) {
 	}
 
 	var QUERY string = `
-		SELECT * from vendors where id = ?;
+		SELECT * FROM medistock_db.vendors where email=? OR id = ?;
 	`
 
-	result, err := dbInstance.Query(QUERY, vendorId)
+	result, err := dbInstance.Query(QUERY, vendorEmail,vendorId)
 	if err != nil {
 		log.Printf("Failed to retrieve vendor : %v", err)
 		return nil, err
@@ -122,8 +121,8 @@ func RetrieveVendor(vendorId int) (*models.Vendor, error) {
 			&vendor.ID,
 			&vendor.Name,
 			&vendor.ContactPerson,
-			&vendor.Email,
 			&vendor.Phone,
+			&vendor.Email,
 			&vendor.Address,
 			&vendor.OverallQualityRating,
 			&vendor.AvgDeliveryTimeDays,
@@ -245,7 +244,7 @@ func UpsertSupplyItemService(supplyModel models.Supply, vendorId int, supplyPric
 	}
 
 	// now add the supply item in supply-vendor table
-	vendorModel, _ := RetrieveVendor(vendorId)
+	vendorModel, _ := RetrieveVendor(vendorId, "")
 	amount, _ := strconv.ParseFloat(supplyPrice, 64)
 	log.Printf("Upserting vendor_id=%d, supply_id=%s", vendorId, supplyModel.ID)
 
@@ -280,7 +279,6 @@ func UpsertSupplyItemService(supplyModel models.Supply, vendorId int, supplyPric
 
 	log.Println("Successfully added the supply-combo-vendor record.", resultId)
 	return nil
-
 }
 
 func RetrieveSupply(supplyId string) (*models.Supply, error) {
@@ -363,5 +361,60 @@ func AddNewVendorservice(vendorModel models.Vendor) error {
 
 	log.Printf("Inserted vendor with ID : %d", lastId)
 	return nil
+}
 
+
+func FetchSuppliesByVendorId(vendorId int) []models.Supply {
+	dbInstance := DB.Get()
+	
+
+	if dbInstance == nil {
+		log.Fatal("Db Instance is null.(AddNewVendorservice)")
+	}
+
+	var QUERY string = `
+		SELECT * FROM medistock_db.supplies WHERE id IN (
+			SELECT supply_id from medistock_db.vendor_supply_prices where
+			vendor_id = ?
+		);
+	`;
+
+	log.Println("vendor id is ", vendorId);
+	result, err := dbInstance.Query(QUERY, vendorId);
+
+	if err != nil {
+		log.Fatal("Something went wrong while querying supplies. ", err.Error());
+	}
+
+	defer result.Close()
+
+	var supplies []models.Supply;
+	for result.Next() {
+		var supply models.Supply;
+
+		err := result.Scan(
+			&supply.ID,
+			&supply.Name,
+			&supply.SKU,
+			&supply.UnitOfMeasure,
+			&supply.Category,
+			&supply.IsVital,
+			&supply.CreatedAt,
+			&supply.UpdatedAt,
+		)
+
+		if (err!= nil ) {
+			log.Fatal("Something went wrong while reading rows ,on querying supplies from vendors.",err.Error());
+		}
+
+		supplies= append(supplies, supply);
+	}
+
+	if err := result.Err(); err != nil {
+		log.Fatalf("Row iteration error : %v", err)
+	}
+
+	log.Println("total supplies : ", len(supplies))
+
+	return supplies;
 }
