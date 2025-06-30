@@ -12,4 +12,6 @@ func RegisterCommonRouters(apiRouter *mux.Router) {
 		return middleware.RateLimitMiddleWare(next.ServeHTTP)
 	});
 	apiRouter.HandleFunc("/logout",handlers.LogoutHandler);
+	apiRouter.HandleFunc("/vendors-supply/{id}", handlers.RetrieveSuppliesOfVendor).Methods("GET");
+	
 }

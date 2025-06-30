@@ -81,7 +81,7 @@ func RenewAccessTokenService(refreshToken string) (*string, error, int) {
 	err := dbInstance.QueryRow(`SELECT email,actor,expiry_time from auth_token where refresh_token = ?`, refreshToken).Scan(&email, &actor, &expiry)
 
 	if err != nil {
-		log.Fatalf("Something went wrong on renewing fresh accesstokens : %v", err)
+		log.Printf("Something went wrong on renewing fresh accesstokens : %v", err)
 		return nil, err, http.StatusInternalServerError
 	}
 

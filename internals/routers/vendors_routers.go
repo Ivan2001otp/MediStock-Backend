@@ -18,7 +18,7 @@ func RegisterVendorRoutes(apiRouter *mux.Router) {
 	apiRouter.HandleFunc("/health", services.HealthCheckHandler).Methods("GET")
 
 	apiRouter.HandleFunc("/vendors", handlers.AddVendorHandler).Methods("POST")
-	apiRouter.HandleFunc("/vendors", handlers.RetrieveVendorsHandler).Methods("GET")
+	// apiRouter.HandleFunc("/vendors", handlers.RetrieveVendorsHandler).Methods("GET")
 	apiRouter.HandleFunc("/vendors/{id}", handlers.RetrieveUniqueVendor).Methods("GET")
 	apiRouter.HandleFunc("/vendors/{id}", handlers.UpdateVendorHandler).Methods("PUT")
 
@@ -28,6 +28,6 @@ func RegisterVendorRoutes(apiRouter *mux.Router) {
 	// This endpoint helps to update supply details from vendor
 	apiRouter.HandleFunc("/vendors/{id}", handlers.UpdateSupplyHandler).Methods("PATCH")
 
-	apiRouter.HandleFunc("/vendors-supply/{id}", handlers.RetrieveSuppliesOfVendor).Methods("GET");
+	// apiRouter.HandleFunc("/vendors-supply/{id}", handlers.RetrieveSuppliesOfVendor).Methods("GET");
 
 }

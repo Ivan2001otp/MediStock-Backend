@@ -227,6 +227,7 @@ func RetrieveUniqueVendor(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
 func RetrieveVendorsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		services.SetErrorResponse(w, http.StatusBadRequest, "supposed to be GET")
@@ -256,6 +257,7 @@ func RetrieveVendorsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+*/
 
 func AddVendorHandler(w http.ResponseWriter, r *http.Request) {
 

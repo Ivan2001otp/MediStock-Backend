@@ -183,8 +183,8 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 			&vendor.ID,
 			&vendor.Name,
 			&vendor.ContactPerson,
-			&vendor.Email,
 			&vendor.Phone,
+			&vendor.Email,
 			&vendor.Address,
 			&vendor.OverallQualityRating,
 			&vendor.AvgDeliveryTimeDays,
@@ -205,7 +205,8 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 		log.Printf("Row iteration error : %v", err)
 		return nil, err
 	}
-
+	
+	log.Println("[BACKEND] response : ",len(vendorList));
 	return vendorList, nil
 }
 

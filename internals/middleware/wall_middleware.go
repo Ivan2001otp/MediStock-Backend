@@ -27,7 +27,7 @@ func CheckRoleMiddleware(expectedRole string) func(http.Handler) http.Handler {
 				http.Error(w, "Forbidden:Access Denied", http.StatusForbidden)
 				return
 			}
-			log.Println("Role values are passed as SAME ... ")
+			log.Println("Role values are passed as SAME ... - ", role)
 			next.ServeHTTP(w, r)
 		})
 	}
