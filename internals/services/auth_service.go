@@ -20,8 +20,12 @@ func LogoutService(email, actor string) error {
 		return fmt.Errorf("db instance is null.(RetrieveAllVendors)")
 	}
 
+	log.Println("email to be delete : ", email);
+	log.Println("actor to be delete : ", actor);
+
+
 	var QUERY string = `DELETE FROM auth_token where email=? and actor=?`
-	_, err := dbInstance.Exec(QUERY, email, actor)
+	_, err := dbInstance.Exec(QUERY, email, actor);
 	if err != nil {
 		log.Println("Db Error .Error during logout : ", err.Error())
 

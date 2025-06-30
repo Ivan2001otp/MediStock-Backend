@@ -103,7 +103,7 @@ func AddNewSupplyHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 
 	err := decoder.Decode(&supplyModel)
-	if err != nil {
+	if err != nil { 
 		log.Printf("Something went wrong while Adding new supply : %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
