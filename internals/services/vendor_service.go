@@ -161,9 +161,9 @@ func RetrieveAllVendors(lastSeenId int, pageSize int) ([]models.Vendor, error) {
 	}
 
 	var QUERY string = `
-		SELECT id,name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days,score,created_at,updated_at FROM vendors
+		SELECT id,name,contact_person,phone,email,address,overall_quality_rating,avg_delivery_time_days,score,created_at,updated_at FROM medistock_db.vendors
 		WHERE id > ?
-		ORDER By id ASC
+		ORDER By id 
 		LIMIT ?
 	`
 

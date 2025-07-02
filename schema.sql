@@ -88,3 +88,24 @@ CREATE TABLE IF NOT EXISTS inventory (
 
 
 SELECT * FROM medistock_db.supplies where id in ( select supply_id from medistock_db.vendor_supply_prices where vendor_id=1);
+
+
+-- query to fetch inventory items for given hospital id 
+SELECT
+			inv.hospital_id,
+			inv.supply_id,
+			s.name AS supply_name,
+			s.sku AS supply_sku,
+			s.unit_of_measure,
+			s.category AS supply_category,
+			s.is_vital,
+			inv.current_stock,
+			inv.reorder_threshold
+	FROM
+			medistock_db.inventory inv
+		JOIN
+			medistock_db.supplies s ON inv.supply_id = s.id
+		
+		WHERE
+			inv.hospital_id = '530a27e8-d298-45cb-bd53-f79f3f71ec84'
+		;

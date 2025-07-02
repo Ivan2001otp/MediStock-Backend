@@ -27,21 +27,30 @@ func getAggregatedVendorDataBatch(ctx context.Context, limit int, lastProcessedI
 	aggregatedDate := []ML_DATA{}
 
 	query := `
-		SELECT vendor.id , vendor.email , vendor.overall_quality_rating as rating,
-		AVG(vendor_supply.unit_price) as price, AVG(vendor_supply.avg_delivery_days) as days
-		FROM vendors vendor JOIN vendor_supply_prices vendor_supply
-		ON vendor.id = vendor_supply.vendor_id
-		WHERE vendor.id > ?
-		GROUP BY vendor.id 
-		ORDER By vendor.id 
-		LIMIT ?;
-	`
+				SELECT
+				v.id AS id,
+				v.email AS email,
+				v.overall_quality_rating AS rating,
+				COALESCE(AVG(vsi.unit_price), 0.0) AS price, 
+				FROM
+					medistock_db.vendors v
+				LEFT JOIN -- CHANGE THIS FROM JOIN TO LEFT JOIN
+					medistock_db.vendor_supply_prices vsi ON v.id = vsi.vendor_id
+				WHERE
+					v.id > ?
+				GROUP BY
+					v.id, v.email, v.overall_quality_rating 
+				ORDER BY
+					v.id ASC
+				LIMIT ?;
+		`
 
 	dbInstance := DB.Get()
 	if dbInstance == nil {
 		log.Fatal("(CRON) Database instance not instantiated")
 	}
 
+	log.Println("limit is ", limit)
 	rows, err := dbInstance.Query(query, lastProcessedId, limit)
 	if err != nil {
 		log.Println("Could not execute GET query !")
@@ -57,7 +66,6 @@ func getAggregatedVendorDataBatch(ctx context.Context, limit int, lastProcessedI
 			&item.email,
 			&item.rating,
 			&item.price,
-			&item.days,
 		)
 
 		if err != nil {
@@ -71,6 +79,7 @@ func getAggregatedVendorDataBatch(ctx context.Context, limit int, lastProcessedI
 		log.Fatal("Something went wrong after row-scan : %v", err)
 	}
 
+	log.Println("aggregatedDate size : ", len(aggregatedDate))
 	return aggregatedDate
 }
 
@@ -80,7 +89,7 @@ func getMLWorthScore(ctx context.Context, batchData ML_DATA) (float64, error) {
 	payload := map[string]interface{}{
 		"unit_price":        batchData.price,
 		"quality_rating":    int(batchData.rating),
-		"avg_delivery_days": batchData.days,
+		"avg_delivery_days": int(batchData.days),
 	}
 
 	jsonData, err := json.Marshal(payload)
@@ -114,7 +123,7 @@ func getMLWorthScore(ctx context.Context, batchData ML_DATA) (float64, error) {
 	var responseJson map[string]interface{}
 
 	if err = json.Unmarshal(body, &responseJson); err != nil {
-		log.Println("Failed to unmarshal response-json : %v", err)
+		log.Fatalf("Failed to unmarshal response-json : %v", err)
 	}
 	log.Println("response Json : ", responseJson)
 
@@ -148,6 +157,7 @@ func updateVendorScore(ctx context.Context, batchId int, score float64) error {
 }
 
 func runUpdateScores() {
+	log.Println("Started ML...")
 	log.Println("Starting vendor ML worth score update process (Keyset Pagination)......")
 	ctx := context.Background()
 
@@ -179,6 +189,7 @@ func runUpdateScores() {
 			}
 
 			lastProcessedVendorId = vendorDataBatch[len(vendorDataBatch)-1].ID
+			log.Println("last vendor id is ", lastProcessedVendorId)
 			time.Sleep(1 * time.Second)
 		}
 
@@ -201,6 +212,7 @@ func main() {
 	defer cancel()
 
 	go func() {
+
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 		<-sig
@@ -211,38 +223,28 @@ func main() {
 	if err := DB.Init(ctx); err != nil {
 		log.Fatalf("Failed to initialize DB : %v", err)
 	}
-	defer DB.Close()
-
-	log.Println("(CRON) Waiting for cron to run next Batch .")
-	time.Sleep(waitUntilNext3Hour())
 
 	for {
 		select {
 		case <-ctx.Done():
 			// Gracefull exit when signal is recieved.
+			log.Println("Gracefull exit when signal is recieved.")
 			return
 
 		default:
 			runUpdateScores()
 			select {
 			case <-ctx.Done():
+				log.Println("Gracefull exit when signal is recieved 2.")
+				defer DB.Close()
 				return
 
-			case <-time.After(3 * time.Hour):
+			case <-time.After(5 * time.Minute):
 				// wait before running task.
 			}
 		}
 	}
-}
 
-func waitUntilNext3Hour() time.Duration {
-	now := time.Now()
-
-	next := now.Truncate(time.Hour).Add(time.Hour * time.Duration(3-(now.Hour()%3)))
-
-	if next.Before(now) {
-		next = next.Add(3 * time.Hour)
-	}
-
-	return time.Until(next)
+	log.Println("(CRON) Waiting for cron to run next Batch .")
+	time.Sleep(time.Minute * 5)
 }
